@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 
 # NanumGothic 폰트 경로 지정 (본인 경로에 맞게 수정 가능)
-font_path = "/workspaces/blank001app/fonts/NanumGothic-Regular.ttf"
+font_path = "./fonts/NanumGothic-Regular.ttf"
 fontprop = fm.FontProperties(fname=font_path)
 
 plt.rc('font', family=fontprop.get_name())  # 폰트 지정
