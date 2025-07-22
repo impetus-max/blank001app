@@ -1,0 +1,110 @@
+import streamlit as st
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 앱 제목 및 소개
+st.title("전류의 자기장 인터랙티브 시뮬레이터")
+st.markdown("""
+*직선 도선, 원형 루프, 솔레노이드에서의 자기장을 직접 조작하고 시각화해 보세요!*
+""")
+
+# 도선 구조 선택
+wire_type = st.radio("도선 구조 선택", ["직선 도선", "원형 루프", "솔레노이드"])
+
+# 전류 세기/방향 입력
+I = st.slider("전류의 세기 (A, +면 위/시계 반대, -면 아래/시계)", -5.0, 5.0, 1.0, 0.1)
+show_vector = st.checkbox("자기장 방향 벡터 표시", value=True)
+show_stream = st.checkbox("자기장 흐름선 표시", value=True)
+show_magnitude = st.checkbox("자기장 세기 색상 표시", value=True)
+
+if wire_type == "직선 도선":
+    st.subheader("직선 도선 자기장")
+    x = np.linspace(-2, 2, 30)
+    y = np.linspace(-2, 2, 30)
+    X, Y = np.meshgrid(x, y)
+    r = np.sqrt(X**2 + Y**2)
+    mu0 = 4 * np.pi * 1e-7
+    B = mu0 * abs(I) / (2 * np.pi * r)
+    BX = -Y / r * np.sign(I)
+    BY = X / r * np.sign(I)
+    fig, ax = plt.subplots(figsize=(6,6))
+    if show_stream:
+        ax.streamplot(X, Y, BX, BY, color=B if show_magnitude else 'k', linewidth=1.5)
+    if show_vector:
+        ax.quiver(X, Y, BX, BY, B if show_magnitude else 'k')
+    ax.plot(0, 0, 'ro', markersize=10, label="도선")
+    ax.legend()
+    ax.set_title("직선 도선 주위 자기장")
+    ax.set_xlabel("x (m)")
+    ax.set_ylabel("y (m)")
+    st.pyplot(fig)
+    # 상호작용: 특정 위치 클릭 시 자기장 벡터/세기 표시
+    col1, col2 = st.columns(2)
+    with col1:
+        xpos = st.number_input("관찰할 x좌표 (m)", -2.0, 2.0, 1.0, 0.1)
+    with col2:
+        ypos = st.number_input("관찰할 y좌표 (m)", -2.0, 2.0, 0.0, 0.1)
+    r_obs = np.sqrt(xpos**2 + ypos**2)
+    if r_obs == 0:
+        st.warning("도선 위에서의 자기장은 정의되지 않습니다!")
+    else:
+        B_obs = mu0 * I / (2 * np.pi * r_obs)
+        direction = "반시계" if I > 0 else "시계"
+        st.info(f"({xpos:.2f}, {ypos:.2f})점 자기장 크기: {B_obs:.2e} T / 방향: 도선을 중심으로 {direction} 방향")
+        st.latex(f"B = \\frac{{\\mu_0 I}}{{2\\pi r}} = {B_obs:.2e}\\ T")
+
+elif wire_type == "원형 루프":
+    st.subheader("원형 루프 자기장")
+    R = st.slider("루프 반지름 (m)", 0.2, 2.0, 1.0, 0.1)
+    z = st.slider("중심축(z) 위치 (m)", -2.0, 2.0, 0.0, 0.1)
+    mu0 = 4 * np.pi * 1e-7
+    Bz = mu0 * I * R**2 / (2 * (R**2 + z**2)**(1.5))
+    st.info(f"중심축 z={z:.2f}m의 자기장: {Bz:.2e} T")
+    st.latex(f"B = \\frac{{\\mu_0 I R^2}}{{2(R^2 + z^2)^{{3/2}}}} = {Bz:.2e}\\ T")
+    zs = np.linspace(-2, 2, 200)
+    Bzs = mu0 * I * R**2 / (2 * (R**2 + zs**2)**(1.5))
+    fig, ax = plt.subplots()
+    ax.plot(zs, Bzs)
+    ax.set_title("원형 루프 축 방향 자기장")
+    ax.set_xlabel("z (m)")
+    ax.set_ylabel("B (T)")
+    st.pyplot(fig)
+    st.markdown("*직접 z 위치를 바꿔가며 자기장 변화를 관찰해 보세요.*")
+
+elif wire_type == "솔레노이드":
+    st.subheader("솔레노이드(코일) 자기장")
+    n = st.slider("단위길이당 감은 수 (회/m)", 10, 200, 50, 5)
+    mu0 = 4 * np.pi * 1e-7
+    B = mu0 * n * I
+    st.info(f"코일 내부 자기장: {B:.2e} T")
+    st.latex(f"B = \\mu_0 n I = {B:.2e}\\ T")
+
+# 실생활 예시 랜덤 노출
+import random
+examples = [
+    "스피커의 보이스코일 자기장 구조",
+    "MRI 자기장 생성 원리",
+    "무선 충전 패드 코일 구조",
+    "전철, 발전소 변압기 내부",
+]
+if st.button("실생활 적용 예시 랜덤 보기"):
+    st.success(random.choice(examples))
+
+# 미니 퀴즈: 학생 실시간 피드백
+quiz = st.radio("문제) 전류 방향을 반대로 하면 자기장 방향은?", ["같아진다", "반대가 된다", "크기만 달라진다"])
+if st.button("정답 확인"):
+    if quiz == "반대가 된다":
+        st.success("정답! 오른손 법칙에 따라 자기장 방향도 반대가 됩니다.")
+    else:
+        st.error("오답! 전류 방향이 바뀌면 자기장 방향도 반대로 바뀝니다.")
+
+# 학생 의견/답변 기록 (구글 시트 연동 샘플)
+with st.expander("오늘 배운 점/질문을 입력하세요 (구글 시트 연동 가능)"):
+    user_name = st.text_input("이름(익명 가능)", "")
+    user_answer = st.text_area("배운 점/질문/의견 입력", "")
+    if st.button("제출"):
+        st.write("입력이 기록되었습니다. (실제 연동은 샘플코드 참고)")
+
+st.markdown("---")
+st.markdown("자바랩 [직선 도선의 자기장](https://javalab.org/ko/straight_current_magnetic_field/) / [원형 도선의 자기장](https://javalab.org/ko/circular_current_magnetic_field/) / [솔레노이드 자기장](https://javalab.org/ko/solenoid_magnetic_field/)과 함께 연계해 보세요.")
+
