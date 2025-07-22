@@ -1,89 +1,82 @@
 import streamlit as st
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
 
-# NanumGothic 폰트 경로 지정 (본인 경로에 맞게 수정 가능)
-font_path = "/workspaces/blank001app/fonts/NanumGothic-Regular.ttf"
-fontprop = fm.FontProperties(fname=font_path)
+# 1. 앱 메타 정보 설정 (페이지 타이틀 등)
+st.set_page_config(
+    page_title="스트림릿 기본 앱 데모",
+    layout="centered",      # wide, centered 선택 가능
+    initial_sidebar_state="auto"
+)
 
-plt.rc('font', family=fontprop.get_name())  # 폰트 지정
-plt.rcParams['axes.unicode_minus'] = False
-
-st.set_page_config(page_title="전류의 자기장 시각화", layout="wide")
-
-st.title("⚡ 전류의 자기장 시각화 ⚡")
+# 2. 앱 타이틀과 설명
+st.title("🎈 스트림릿 기본 앱 예제")
+st.header("여기는 Streamlit 앱의 기본 뼈대입니다!")
 st.markdown("""
-- **직선 전류**: y축을 따라 흐르는 전류 주위에 동심원 자기장이 비오-사바르 법칙에 의해 생성됩니다.  
-- **원형 루프 전류**: 루프 중심축 방향에 강한 자기장이 형성됩니다.  
-- 화살표는 자기장의 방향과 크기를 나타냅니다.
+**Streamlit**은 Python만으로 대화형 웹앱을 아주 쉽게 만들 수 있는 오픈소스 프레임워크입니다.
+
+주요 기능(위젯, 입력, 레이아웃, 상태관리 등)을 간단히 아래에 데모합니다.
 """)
 
-# 사이드바 한글 UI
-experiment_type = st.sidebar.selectbox(
-    "실험 유형",
-    options=["직선 전류", "원형 루프 전류"]
-)
-current = st.sidebar.slider("전류 세기 (A)", min_value=0.1, max_value=5.0, value=2.0, step=0.1)
-field_scale = st.sidebar.slider("자기장 강도 배율", min_value=50, max_value=1000, value=300, step=50)
-density = st.sidebar.slider("벡터 밀도", min_value=10, max_value=30, value=20, step=1)
+# 3. 사이드바 예시
+st.sidebar.title("사이드바")
+name = st.sidebar.text_input("이름을 입력하세요", "홍길동")
+age = st.sidebar.slider("나이", 10, 80, 20)
 
-# 격자 생성
-X = np.linspace(-5, 5, density)
-Y = np.linspace(-4, 4, density)
-X, Y = np.meshgrid(X, Y)
+# 4. 입력 위젯 예시
+st.subheader("기본 입력 위젯들")
+col1, col2 = st.columns(2)
 
-def calculate_straight_current_field(I, x, y, field_scale):
-    mu0 = 4 * np.pi * 1e-7
-    r = np.abs(x) + 0.01
-    B_magnitude = mu0 * I / (2 * np.pi * r)
-    B_magnitude_scaled = B_magnitude * field_scale
-    Bx = np.zeros_like(x)
-    By = np.sign(-x) * np.abs(B_magnitude_scaled)
-    return Bx, By
+with col1:
+    hobby = st.selectbox("취미를 골라주세요", ["독서", "운동", "게임", "음악감상"])
+    agree = st.checkbox("동의합니다")
+with col2:
+    rating = st.radio("만족도(5점 척도)", [1,2,3,4,5])
+    memo = st.text_area("하고 싶은 말을 적어주세요")
 
-def calculate_loop_current_field(I, x, y, field_scale):
-    mu0 = 4 * np.pi * 1e-7
-    R = 3.0
-    r = np.sqrt(x**2 + y**2) + 0.01
-    theta = np.arctan2(y, x)
-    near_loop = np.abs(r - R) < 0.5
-    B_magnitude = np.zeros_like(x)
-    B_magnitude[near_loop] = mu0 * I * R**2 / (2 * (R**2 + (r[near_loop] - R)**2)**1.5)
-    B_magnitude_scaled = B_magnitude * field_scale * 1e6
-    Bx = -np.sin(theta) * B_magnitude_scaled
-    By = np.cos(theta) * B_magnitude_scaled
-    inside_loop = r < R
-    return Bx, By, inside_loop
+# 5. 버튼/액션
+if st.button("입력값 요약 출력"):
+    st.success(f"이름: {name}\n나이: {age}\n취미: {hobby}\n만족도: {rating}\n동의여부: {agree}\n메모: {memo}")
 
-fig, ax = plt.subplots(figsize=(10, 8))
-ax.set_aspect('equal')
-ax.set_xlim(-5, 5)
-ax.set_ylim(-4, 4)
+# 6. 파일 업로드/다운로드
+st.subheader("파일 업로드 & 다운로드")
+uploaded = st.file_uploader("파일을 선택하세요", type=["txt", "csv", "xlsx"])
+if uploaded:
+    st.write("업로드된 파일 이름:", uploaded.name)
+    # 예시: 텍스트 파일 미리보기
+    if uploaded.type == "text/plain":
+        content = uploaded.read().decode("utf-8")
+        st.text_area("파일 내용 미리보기", content, height=100)
 
-# 그래프 한글 라벨/범례/제목 폰트 지정
-ax.set_title(f"{'직선 전류' if experiment_type=='직선 전류' else '원형 루프 전류'}의 자기장 벡터 (전류: {current:.1f} A)", fontproperties=fontprop)
-ax.set_facecolor("#f8f9fa")
-ax.grid(True, alpha=0.3)
+st.download_button("샘플 텍스트 다운로드", data="안녕하세요!\n이 파일은 예시입니다.", file_name="sample.txt")
 
-if experiment_type == "직선 전류":
-    Bx, By = calculate_straight_current_field(current, X, Y, field_scale)
-    ax.quiver(X, Y, Bx, By, color='blue', pivot='middle', scale=500, width=0.006)
-    ax.plot([0, 0], [-4, 4], 'r-', linewidth=3, label="전류선 (y축)")
-elif experiment_type == "원형 루프 전류":
-    Bx, By, inside = calculate_loop_current_field(current, X, Y, field_scale)
-    ax.quiver(X, Y, Bx, By, color='blue', pivot='middle', scale=500, width=0.006)
-    circle = plt.Circle((0, 0), 3, color='red', fill=False, linewidth=3, label="전류 루프")
-    ax.add_patch(circle)
-    ax.scatter(X[inside], Y[inside], color='cyan', alpha=0.3, s=50, label="루프 내부 강한 자기장")
+# 7. 데이터 프레임/그래프 표시
+import pandas as pd
+import numpy as np
+st.subheader("데이터프레임 & 차트 예시")
+df = pd.DataFrame({
+    "수치A": np.random.randint(10, 50, 10),
+    "수치B": np.random.rand(10)
+})
+st.dataframe(df)
+st.line_chart(df)
 
-# 축/범례 폰트도 한글로!
-ax.set_xlabel("X (m)", fontproperties=fontprop)
-ax.set_ylabel("Y (m)", fontproperties=fontprop)
-leg = ax.legend(loc='upper right', prop=fontprop)
+# 8. 이미지, 코드, 경고, 주의 등
+st.subheader("미디어 및 메시지 예시")
+st.image("https://streamlit.io/images/brand/streamlit-logo-secondary-colormark-darktext.png", width=150)
+st.code("""
+for i in range(3):
+    print("Hello, Streamlit!")
+""", language="python")
+st.warning("이것은 경고 메시지입니다!")
+st.info("이것은 정보 메시지입니다.")
+st.error("이것은 에러 메시지입니다.")
 
-# 축 눈금 폰트 한글 적용
-for label in ax.get_xticklabels() + ax.get_yticklabels():
-    label.set_fontproperties(fontprop)
+# 9. 기타 상호작용/상태관리
+st.subheader("상태관리 (Session State)")
+if 'count' not in st.session_state:
+    st.session_state.count = 0
+if st.button("카운트 증가"):
+    st.session_state.count += 1
+st.write("카운트 값:", st.session_state.count)
 
-st.pyplot(fig)
+st.markdown("---")
+st.caption("이 예시는 Streamlit의 주요 기능을 한 번에 보여주기 위한 종합 코드입니다. 질문은 언제든 환영!")
