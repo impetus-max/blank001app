@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 # 한글 폰트 경로 지정
-font_path = "/workspaces/blank001app/fonts/NanumGothic-Regular.ttf"
+font_path = "./fonts/NanumGothic-Regular.ttf"
 
 fontprop = fm.FontProperties(fname=font_path)
 plt.rcParams['axes.unicode_minus'] = False  # 마이너스 깨짐 방지
